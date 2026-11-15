@@ -1,0 +1,47 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cai XcodeGen
+        run: brew install xcodegen
+
+      - name: Tao project Xcode
+        run: xcodegen generate
+
+      - name: Build khong ky
+        run: |
+          xcodebuild \
+            -project A1Tool.xcodeproj \
+            -scheme A1Tool \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Dong goi IPA
+        run: |
+          APP=$(find build/Build/Products -name "A1Tool.app" -maxdepth 3 | head -n 1)
+          echo "App: $APP"
+          rm -rf Payload A1Tool.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry A1Tool.ipa Payload
+          ls -la A1Tool.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: A1Tool-ipa
+          path: A1Tool.ipa
